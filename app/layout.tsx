@@ -1,0 +1,69 @@
+import type { Metadata } from "next";
+import { Source_Code_Pro, IBM_Plex_Sans_KR } from "next/font/google";
+import { cookies } from "next/headers";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import NavBar from "@/components/navigation/nav-bar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SideBar } from "@/components/navigation/side-bar";
+import { SearchDialogProvider } from "@/components/dialogs/search-dialog-provider";
+import QueryProvider from "@/app/_providers/query-provider";
+import { LoginDialogProvider } from "@/components/auth/login-dialog-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import "@/app/globals.css";
+
+const ibmPlexSansKR = IBM_Plex_Sans_KR({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const sourceCodePro = Source_Code_Pro({
+  variable: "--font-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "쉬운 전문용어",
+  description: "컴퓨터 분야 쉬운 전문용어 번역 플랫폼",
+};
+
+export default async function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const cookieStore = await cookies();
+  const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
+
+  return (
+    <html lang="ko" suppressHydrationWarning>
+      <body
+        className={`${ibmPlexSansKR.className} ${sourceCodePro.variable} bg-background! font-sans antialiased`}
+      >
+        <QueryProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <SidebarProvider defaultOpen={defaultOpen}>
+              <SideBar />
+              <SearchDialogProvider>
+                <LoginDialogProvider>
+                  <SidebarInset>
+                    <div className="flex min-h-svh w-full flex-col px-4 sm:px-6 lg:px-8">
+                      <NavBar />
+                      <main className="flex-1">{children}</main>
+                    </div>
+                  </SidebarInset>
+                </LoginDialogProvider>
+              </SearchDialogProvider>
+              <ReactQueryDevtools initialIsOpen={false} />
+            </SidebarProvider>
+          </ThemeProvider>
+        </QueryProvider>
+      </body>
+    </html>
+  );
+}
