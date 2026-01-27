@@ -35,6 +35,7 @@ import {
   suggestJargon,
   type SuggestJargonState,
 } from "@/app/actions/suggest-jargon";
+import ChatAssistant from "@/components/chat/chat-assistant";
 
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -119,7 +120,7 @@ export default function SuggestJargonDialog() {
           용어제안
         </Button>
       </DialogTrigger>
-      <DialogContent className="-translate-y-[calc(33dvh)]">
+      <DialogContent className="-translate-y-[calc(33dvh)] sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>쉬운 전문용어 제안하기</DialogTitle>
           <DialogDescription>
@@ -127,116 +128,123 @@ export default function SuggestJargonDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <Form
-          ref={formRef}
-          action={suggestJargonAction}
-          className="flex flex-col gap-3"
-        >
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="jargon" className="text-sm font-medium">
-              원어
-            </Label>
-            <Input
-              id="jargon"
-              type="text"
-              name="jargon"
-              placeholder="coverage"
-              required
-            />
-            <p className="text-muted-foreground text-xs">
-              대문자가 고유명사의 일부로 사용되는 경우 외에는 소문자를
-              사용해주세요
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="translation" className="text-sm font-medium">
-                번역
+        <div className="flex gap-4">
+          <Form
+            ref={formRef}
+            action={suggestJargonAction}
+            className="flex flex-col gap-3 border-r pr-4"
+          >
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="jargon" className="text-sm font-medium">
+                원어
               </Label>
-              <span className="flex items-center gap-1">
-                <Checkbox
-                  id="no-translation"
-                  checked={noTranslation}
-                  onCheckedChange={(checked) =>
-                    setNoTranslation(checked === true)
-                  }
-                />
-                <Label
-                  htmlFor="no-translation"
-                  className="text-muted-foreground text-xs"
-                >
-                  번역 없이 제안하기
-                </Label>
-              </span>
+              <Input
+                id="jargon"
+                type="text"
+                name="jargon"
+                placeholder="coverage"
+                required
+              />
+              <p className="text-muted-foreground text-xs">
+                대문자가 고유명사의 일부로 사용되는 경우 외에는 소문자를
+                사용해주세요
+              </p>
             </div>
-            <input
-              type="hidden"
-              name="noTranslation"
-              value={noTranslation ? "true" : "false"}
-            />
-            <Input
-              id="translation"
-              type="text"
-              name="translation"
-              placeholder="덮이"
-              disabled={noTranslation}
-            />
+
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="translation" className="text-sm font-medium">
+                  번역
+                </Label>
+                <span className="flex items-center gap-1">
+                  <Checkbox
+                    id="no-translation"
+                    checked={noTranslation}
+                    onCheckedChange={(checked) =>
+                      setNoTranslation(checked === true)
+                    }
+                  />
+                  <Label
+                    htmlFor="no-translation"
+                    className="text-muted-foreground text-xs"
+                  >
+                    번역 없이 제안하기
+                  </Label>
+                </span>
+              </div>
+              <input
+                type="hidden"
+                name="noTranslation"
+                value={noTranslation ? "true" : "false"}
+              />
+              <Input
+                id="translation"
+                type="text"
+                name="translation"
+                placeholder="덮이"
+                disabled={noTranslation}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <Label className="text-sm font-medium">분야</Label>
+              <MultiSelect
+                variant="outline"
+                options={(categories ?? []).map((c) => ({
+                  value: String(c.id),
+                  label: `${c.acronym} (${c.name})`,
+                  shortLabel: c.acronym,
+                }))}
+                value={categoryIds}
+                onValueChange={setCategoryIds}
+                closeOnSelect={true}
+                hideSelectAll={true}
+                placeholder={
+                  isLoadingCategories ? "불러오는 중..." : "분야 선택"
+                }
+                disabled={isLoadingCategories}
+                popoverClassName="w-full"
+              />
+              {categoryIds.map((cid) => (
+                <input key={cid} type="hidden" name="categoryIds" value={cid} />
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="comment" className="text-sm font-medium">
+                설명
+              </Label>
+              <Textarea
+                id="comment"
+                name="comment"
+                placeholder="왜 이 용어/번역이 좋은지 설명해주세요!"
+                rows={4}
+              />
+            </div>
+
+            {result && !("jargonSlug" in result) && !result.ok ? (
+              <p className="text-sm text-red-600">{result.error}</p>
+            ) : null}
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setOpen(false);
+                  resetForm();
+                }}
+              >
+                닫기
+              </Button>
+              {/* TODO: Perform client-side validation and disable if not ok */}
+              <Submit label="제안하기" />
+            </DialogFooter>
+          </Form>
+          <div className="flex-1">
+            <ChatAssistant />
           </div>
-
-          <div className="flex flex-col gap-1">
-            <Label className="text-sm font-medium">분야</Label>
-            <MultiSelect
-              variant="outline"
-              options={(categories ?? []).map((c) => ({
-                value: String(c.id),
-                label: `${c.acronym} (${c.name})`,
-                shortLabel: c.acronym,
-              }))}
-              value={categoryIds}
-              onValueChange={setCategoryIds}
-              closeOnSelect={true}
-              hideSelectAll={true}
-              placeholder={isLoadingCategories ? "불러오는 중..." : "분야 선택"}
-              disabled={isLoadingCategories}
-              popoverClassName="w-full"
-            />
-            {categoryIds.map((cid) => (
-              <input key={cid} type="hidden" name="categoryIds" value={cid} />
-            ))}
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="comment" className="text-sm font-medium">
-              설명
-            </Label>
-            <Textarea
-              id="comment"
-              name="comment"
-              placeholder="왜 이 용어/번역이 좋은지 설명해주세요!"
-              rows={4}
-            />
-          </div>
-
-          {result && !("jargonSlug" in result) && !result.ok ? (
-            <p className="text-sm text-red-600">{result.error}</p>
-          ) : null}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setOpen(false);
-                resetForm();
-              }}
-            >
-              닫기
-            </Button>
-            {/* TODO: Perform client-side validation and disable if not ok */}
-            <Submit label="제안하기" />
-          </DialogFooter>
-        </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
