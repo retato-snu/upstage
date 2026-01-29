@@ -53,25 +53,14 @@ export default function ChatAssistant() {
               )}
             </div>
             <div className="prose max-w-none min-w-0 flex-1">
-              <Markdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  table({ children }) {
-                    return (
-                      <div className="overflow-x-auto overflow-y-hidden">
-                        <table className="min-w-max">{children}</table>
-                      </div>
-                    );
-                  },
-                }}
-              >
+              <MyMarkdown>
                 {typeof message.content === "string"
                   ? message.content
                   : message.content
                       .filter((part) => part.type === "text")
                       .map((part) => part.text)
                       .join()}
-              </Markdown>
+              </MyMarkdown>
             </div>
           </div>
         ))}
@@ -110,5 +99,24 @@ export default function ChatAssistant() {
         </InputGroup>
       </form>
     </div>
+  );
+}
+
+function MyMarkdown({ children }: { children: string }) {
+  return (
+    <Markdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        table({ children }) {
+          return (
+            <div className="overflow-x-auto overflow-y-hidden">
+              <table className="min-w-max">{children}</table>
+            </div>
+          );
+        },
+      }}
+    >
+      {children}
+    </Markdown>
   );
 }
