@@ -128,7 +128,7 @@ export default function SuggestJargonDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex gap-4">
+        <div className="flex min-w-0 gap-4">
           <Form
             ref={formRef}
             action={suggestJargonAction}
@@ -241,7 +241,7 @@ export default function SuggestJargonDialog() {
               <Submit label="제안하기" />
             </DialogFooter>
           </Form>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <ChatAssistant />
           </div>
         </div>
