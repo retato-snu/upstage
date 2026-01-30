@@ -12,9 +12,10 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import type { ChatMessage } from "@/app/api/chat/route";
 
 export default function ChatAssistant() {
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status } = useChat<ChatMessage>({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
@@ -39,7 +40,7 @@ export default function ChatAssistant() {
   return (
     <div className="flex h-full max-h-[60vh] flex-col gap-4">
       <div className="overflow-y-auto pr-2">
-        {messages.map((message, index) => (
+        {messages.map((message) => (
           <div
             key={message.id}
             className="flex items-start whitespace-pre-wrap"
@@ -52,12 +53,31 @@ export default function ChatAssistant() {
               )}
             </div>
             <div className="prose max-w-none min-w-0 flex-1">
-              <MyMarkdown>
-                {message.parts
-                  .filter((part) => part.type === "text")
-                  .map((part) => part.text)
-                  .join()}
-              </MyMarkdown>
+              {message.parts.map((part, index) => {
+                switch (part.type) {
+                  case "text":
+                    return <MyMarkdown key={index}>{part.text}</MyMarkdown>;
+                  case "tool-findRelatedWords":
+                    return (
+                      <div
+                        key={index}
+                        className="mt-2 rounded-md bg-gray-100 p-2"
+                      >
+                        <strong>
+                          관련 단어 검색:
+                          {part.output?.relatedWords
+                            ?.map(
+                              ({ word, translation }) =>
+                                `${word} (${translation})`,
+                            )
+                            .join(", ")}
+                        </strong>
+                      </div>
+                    );
+                  default:
+                    return null;
+                }
+              })}
             </div>
           </div>
         ))}
