@@ -16,7 +16,7 @@ import {
 export default function ChatAssistant() {
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
-      api: '/api/chat',
+      api: "/api/chat",
     }),
   });
   const [input, setInput] = useState("");
@@ -40,7 +40,10 @@ export default function ChatAssistant() {
     <div className="flex h-full max-h-[60vh] flex-col gap-4">
       <div className="overflow-y-auto pr-2">
         {messages.map((message, index) => (
-          <div key={message.id} className="flex items-start whitespace-pre-wrap">
+          <div
+            key={message.id}
+            className="flex items-start whitespace-pre-wrap"
+          >
             <div className="flex-0">
               {message.role === "user" ? (
                 <UserIcon className="mr-1.5 inline-block size-3.5" />
@@ -51,9 +54,9 @@ export default function ChatAssistant() {
             <div className="prose max-w-none min-w-0 flex-1">
               <MyMarkdown>
                 {message.parts
-                      .filter((part) => part.type === "text")
-                      .map((part) => part.text)
-                      .join()}
+                  .filter((part) => part.type === "text")
+                  .map((part) => part.text)
+                  .join()}
               </MyMarkdown>
             </div>
           </div>
@@ -99,11 +102,8 @@ const components = {
 };
 const MyMarkdown = memo(({ children }: { children: string }) => {
   return (
-    <Markdown
-      remarkPlugins={plugins}
-      components={components}
-    >
+    <Markdown remarkPlugins={plugins} components={components}>
       {children}
     </Markdown>
   );
-})
+});
