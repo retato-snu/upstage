@@ -41,10 +41,7 @@ export default function ChatAssistant() {
     <div className="flex h-full max-h-[60vh] flex-col gap-4">
       <div className="overflow-y-auto pr-2">
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className="flex items-start whitespace-pre-wrap"
-          >
+          <div key={message.id} className="flex items-start">
             <div className="flex-0">
               {message.role === "user" ? (
                 <UserIcon className="mr-1.5 inline-block size-3.5" />
