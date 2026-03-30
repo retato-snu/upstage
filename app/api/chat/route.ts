@@ -5,33 +5,15 @@ import {
   streamText,
   UIDataTypes,
   UIMessage,
-  tool,
 } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { z } from "zod";
+import { tools } from "./tools";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 const apiKey = process.env.OPENROUTER_API_KEY;
 const openrouter = createOpenRouter({ apiKey });
-const tools = {
-  findRelatedWords: tool({
-    description:
-      "Finds words that are related in meaning to the given word and provides suggested translations in Korean.",
-    inputSchema: z.object({
-      word: z.string().describe("The word to find related words for."),
-    }),
-    execute: async ({ word }) => {
-      return {
-        relatedWords: [
-          { word: "coverage", translation: "덮이" },
-          { word: "abstraction", translation: "속내용감추기" },
-        ],
-      };
-    },
-  }),
-};
 const system = `
 당신은 한국정보과학회 쉬운전문용어 제정위원회 소속의 전문가입니다. 전문용어에 대한 쉬운 한국어 번역을 도와주세요.
 
