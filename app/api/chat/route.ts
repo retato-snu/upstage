@@ -6,14 +6,17 @@ import {
   UIDataTypes,
   UIMessage,
 } from "ai";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { createOpenAI } from "@ai-sdk/openai";
 import { tools } from "./tools";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-const apiKey = process.env.OPENROUTER_API_KEY;
-const openrouter = createOpenRouter({ apiKey });
+const apiKey = process.env.UPSTAGE_API_KEY;
+const upstage = createOpenAI({
+  apiKey,
+  baseURL: "https://api.upstage.ai/v1",
+});
 const system = `
 당신은 한국정보과학회 쉬운전문용어 제정위원회 소속의 전문가입니다. 전문용어에 대한 쉬운 한국어 번역을 도와주세요.
 
@@ -93,7 +96,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: ChatMessage[] } = await req.json();
 
   const result = streamText({
-    model: openrouter.chat("upstage/solar-pro-3:free"),
+    model: upstage.chat("solar-pro3"),
     system,
     messages: await convertToModelMessages(messages),
     tools,

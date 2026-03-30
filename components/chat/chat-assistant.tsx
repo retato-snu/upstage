@@ -60,15 +60,13 @@ export default function ChatAssistant() {
                         key={index}
                         className="mt-2 rounded-md bg-gray-100 p-2"
                       >
-                        <strong>
-                          관련 단어 검색:
-                          {part.output?.relatedWords
-                            ?.map(
-                              ({ word, translation }) =>
-                                `${word} (${translation})`,
-                            )
-                            .join(", ")}
-                        </strong>
+                        관련 단어 검색:
+                        {part.output?.relatedWords
+                          ?.map(
+                            ({ word, translation }) =>
+                              `${word} (${translation})`,
+                          )
+                          .join(", ")}
                       </div>
                     );
                   default:
