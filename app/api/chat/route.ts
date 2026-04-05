@@ -12,7 +12,7 @@ import { tools } from "./tools";
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-const apiKey = process.env.UPSTAGE_API_KEY;
+const apiKey = process.env.SOLAR_API_KEY || process.env.SOLAR_LLM_API_KEY || process.env.UPSTAGE_API_KEY;
 const upstage = createOpenAI({
   apiKey,
   baseURL: "https://api.upstage.ai/v1",
@@ -22,10 +22,11 @@ const system = `
 
 # 작업 절차
 
-1. 먼저 \`findRelatedWords\` tool을 호출하여 관련어와 그 번역을 찾습니다.
-2. 관련어 번역을 참고하여, 주어진 전문용어에 대한 쉬운 한국어 번역 후보를 생성합니다.
-3. 생성한 번역 후보가 전문용어의 의미를 정확히 전달하는지 확인합니다.
-4. 최종 번역 후보를 한국어로 제시합니다.
+1. 단어의 의미가 확실하지 않다면, 우선 \`lookupDefinition\` tool을 호출하여 웹 검색 결과를 확인합니다.
+2. \`findRelatedWords\` tool을 호출하여 관련어와 그 번역을 찾습니다.
+3. 관련어 번역을 참고하여, 주어진 전문용어에 대한 쉬운 한국어 번역 후보를 생성합니다.
+4. 생성한 번역 후보가 전문용어의 의미를 정확히 전달하는지 확인합니다.
+5. 최종 번역 후보를 한국어로 제시합니다.
 
 # 예시
 
@@ -96,7 +97,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: ChatMessage[] } = await req.json();
 
   const result = streamText({
-    model: upstage.chat("solar-pro3"),
+    model: upstage.chat("solar-pro"),
     system,
     messages: await convertToModelMessages(messages),
     tools,

@@ -79,15 +79,58 @@ export default function ChatAssistant() {
                     return (
                       <div
                         key={index}
-                        className="mt-2 rounded-md bg-gray-100 p-2"
+                        className="mt-2 rounded-md bg-gray-100 p-2 text-sm"
                       >
-                        관련 단어 검색:
-                        {part.output?.relatedWords
-                          ?.map(
-                            ({ word, translation }) =>
-                              `${word} (${translation})`,
-                          )
-                          .join(", ")}
+                        {part.state !== "output-available" ? (
+                          <div className="flex items-center gap-2">
+                            <RefreshCcwIcon className="size-3 animate-spin" />
+                            <span>관련어 찾는 중...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="font-semibold">관련 단어 검색 결과:</span>{" "}
+                            {part.output?.relatedWords
+                              ?.map(
+                                ({ word, translation }) =>
+                                  `${word} (${translation})`,
+                              )
+                              .join(", ")}
+                          </>
+                        )}
+                      </div>
+                    );
+                  case "tool-lookupDefinition":
+                    return (
+                      <div
+                        key={index}
+                        className="mt-2 rounded-md bg-blue-50 p-2 text-sm border border-blue-100"
+                      >
+                        {part.state !== "output-available" ? (
+                          <div className="flex items-center gap-2 text-blue-600">
+                            <span className="animate-bounce">🔎</span>
+                            <span>웹에서 정의를 검색하고 있습니다...</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            <div className="font-semibold text-blue-700 flex items-center gap-1">
+                              <span>✅ 검색 완료:</span>
+                              <span className="text-gray-900">{part.input?.word}</span>
+                            </div>
+                            <div className="text-gray-700 leading-relaxed italic">
+                              "{part.output?.definition}"
+                            </div>
+                            {part.output?.link && (
+                              <a
+                                href={part.output.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-500 hover:underline mt-1 self-start"
+                              >
+                                출처: {new URL(part.output.link).hostname}
+                              </a>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   default:
