@@ -75,27 +75,42 @@ export default function ChatAssistant() {
                 switch (part.type) {
                   case "text":
                     return <MyMarkdown key={index}>{part.text}</MyMarkdown>;
-                  case "tool-findRelatedWords":
+                  case "tool-checkConsistency":
                     return (
                       <div
                         key={index}
-                        className="mt-2 rounded-md bg-gray-100 p-2 text-sm"
+                        className="mt-2 rounded-md bg-orange-50 p-2 text-sm border border-orange-100"
                       >
                         {part.state !== "output-available" ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 text-orange-600">
                             <RefreshCcwIcon className="size-3 animate-spin" />
-                            <span>관련어 찾는 중...</span>
+                            <span>내부 데이터베이스 확인 중...</span>
                           </div>
                         ) : (
-                          <>
-                            <span className="font-semibold">관련 단어 검색 결과:</span>{" "}
-                            {part.output?.relatedWords
-                              ?.map(
-                                ({ word, translation }) =>
-                                  `${word} (${translation})`,
-                              )
-                              .join(", ")}
-                          </>
+                          <div className="flex flex-col gap-1">
+                            <div className="font-semibold text-orange-700 flex items-center gap-1">
+                              <span>🗄️ 내부 검색 결과:</span>
+                              <span className="text-gray-900">{part.input?.word}</span>
+                            </div>
+                            <div className="text-xs text-gray-400 mb-1">
+                              {part.output?.message}
+                            </div>
+                            {part.output?.results?.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {part.output.results.map((res: any, i: number) => (
+                                  <div key={i} className="bg-white border px-2 py-0.5 rounded text-xs">
+                                    <span className="font-medium">{res.term}</span> →{" "}
+                                    <span className="text-orange-600 font-bold">{res.translation}</span>
+                                    <span className="ml-1 text-[10px] text-gray-400">({Math.round(res.score * 100)}%)</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-gray-500 italic text-xs">
+                                매칭되는 내부 용어가 없습니다.
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     );
