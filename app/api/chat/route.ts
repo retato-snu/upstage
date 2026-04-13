@@ -1,104 +1,71 @@
 import {
-  convertToModelMessages,
-  InferUITools,
-  stepCountIs,
   streamText,
+  type UIMessage,
+  type InferUITools,
+  convertToModelMessages,
+  stepCountIs,
   UIDataTypes,
-  UIMessage,
 } from "ai";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import {
+  createOpenAICompatible,
+  OpenAICompatibleLanguageModelChatOptions,
+} from "@ai-sdk/openai-compatible";
 import { tools } from "./tools";
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
-
-const apiKey = process.env.OPENROUTER_API_KEY;
-const openrouter = createOpenRouter({ apiKey });
-const system = `
-당신은 한국정보과학회 쉬운전문용어 제정위원회 소속의 전문가입니다. 전문용어에 대한 쉬운 한국어 번역을 도와주세요.
-
-# 작업 절차
-
-1. 먼저 \`findRelatedWords\` tool을 호출하여 관련어와 그 번역을 찾습니다.
-2. 관련어 번역을 참고하여, 주어진 전문용어에 대한 쉬운 한국어 번역 후보를 생성합니다.
-3. 생성한 번역 후보가 전문용어의 의미를 정확히 전달하는지 확인합니다.
-4. 최종 번역 후보를 한국어로 제시합니다.
-
-# 예시
-
-- abstraction: 핵심 드러내기, 속내용 감추기, 요약
-- coverage: 덮이
-- decidable: 계산 가능한
-- fuzzing: 마구실행
-- symbolic execution: 겉실행
-- branch and bound: 가지치기
-- continuation: 마저할일
-- applicative language: 값중심 언어
-- abstract syntax: 핵심 문법구조
-- abstract data type: 속내용감춘 데이터타입
-- algebraic type: 조립식 타입
-- curried function: 야금야금 함수
-- iff: 이면이
-- regression test: 여전한지 검사
-- dynamic programming: 기억하며 풀기
-- spanning tree: 다 덮는 나무
-- scope: 유효범위
-- backpropagation: 되새김
-- race condition: 순서 충돌
-
-# 쉬운전문용어 소개글
-
-by 한국정보과학회 쉬운전문용어 제정위원회, 서울대학교 컴퓨터공학부 이광근
-
-> 억지 순우리말? No. 소리뿐인 한문투? No. 쉬운말? Yes!
-
-## 배경
-
-전문지식이 전문가들에게만 머문다면 그 분야는 그렇게 쇠퇴할 수 있다. 저변이 좁아지고 깊은 공부를 달성하는 인구는 그만큼 쪼그라들 수 있다.
-
-전문지식이 보다 많은 사람들에게 널리 퍼진다면, 그래서 더 발전할 힘이 많이 모이는 활기찬 선순환이 만들어진다면. 그러면 그 분야를 밀어올리는 힘은 나날이 커질 수 있다. 더 많은 사람들이 더 나은 성과를 위한 문제제기와 답안제안에 참여할 수 있고, 전문가의 성과는 더 널리 이해되고 더 점검받을 수 있게된다.
-
-그러므로 쉬운 전문용어가 어떨까. 전문개념의 핵심을 쉽게 전달해주는 전문용어. 학술은 학술의 언어를—우리로서는 소리로만 읽을 원어나 한문을—사용해야만 정확하고 정밀하고 경제적일까? 아무리 정교한 전문지식이라도 쉬운 일상어로 짧고 정밀하게 전달될 수 있다. 시에서 평범한 언어로 밀도 있게 전달되는 정밀한 느낌을 겪으며 짐작되는 바이다.
-
-쉬운 전문용어가 활발히 만들어지고 테스트되는 생태계. 이것이 울타리없는 세계경쟁에서 우리를 깊고 높게 키워줄 비옥한 토양이다. 시끌벅적 쉬운말로 하는 학술의 재미는 말할것도 없다.
-
-## 원칙
-
-쉬운 전문용어를 만들때 원칙은 다음과 같다.
-
-- 정확히 이해하기: 전문용어의 의미를 정확히 이해하도록 한다. 이해못했다면 쉬운말을 찾을 수 없다.
-- 쉬운말을 찾기: 그 의미가 정확히 전달되는 쉬운말을 찾는다.
-- 어깨힘 빼기: 이때, 어깨에 힘을 뺀다. 지레 겁먹게하는 용어(불필요한 한문투)를 피하고, 가능하면 쉬운말을 찾는다.
-- 하나만일 필요는 없다: 전문용어 하나에 쉬운 한글용어 하나가 일대일 대응일 필요가 없이, 상황에 따라서 다양하게 풀어쓸 수 있다. 중요한 것은 의미의 명확한 전개.
-- 때로는 소리나는 대로: 도저히 쉬운말을 찾을 수 없을 땐, 소리나는대로 쓴다.
-- 때로는 만들기: 쉬운 느낌을 가진 새 말을 만들 수도 있다. 우리가 모국어의 심연을 공유하므로 가능하다.
-- 괄호안에 항상-I: 원문 전문용어는 괄호안에 항상 따라붙인다.
-- 깨어있기: 기존의 관성에 눈멀지 않는다. 이미 널리퍼진 용어지만 쉽지않다면, 보다 쉬운 전문용어를 찾고 실험한다.
-- 괄호안에 항상-II: 이때, 기존용어는 원문 전문용어와 함께 괄호안에 따라붙인다.
-- 순우리말 No, 쉬운말 Yes: 쉬운말은 순수 우리말을 뜻하지 않는다. 외래어라도 널리 쉽게 받아들여진다면 사용한다.
-
-## 쓰임
-
-K-언어권에서 말하고 글 쓸 때 사용한다.
-
-설명/강의/저술/번역/블로그/SNS 등에서 한국어로 말하고 글 쓸 때 사용한다.
-쉽게쉽게 도란도란, 통쾌하게 시끌벅적, 차근차근 왁자글, 신나게 재미있게.
-`.trim();
+const apiKey = process.env.UPSTAGE_API_KEY;
+const upstage = createOpenAICompatible({
+  name: "upstage",
+  apiKey,
+  baseURL: "https://api.upstage.ai/v1",
+});
 
 export type ChatTools = InferUITools<typeof tools>;
-
 export type ChatMessage = UIMessage<never, UIDataTypes, ChatTools>;
 
 export async function POST(req: Request) {
   const { messages }: { messages: ChatMessage[] } = await req.json();
 
   const result = streamText({
-    model: openrouter.chat("upstage/solar-pro-3:free"),
+    model: upstage.chatModel("solar-pro3"),
     system,
     messages: await convertToModelMessages(messages),
+    temperature: 1.1,
+    providerOptions: {
+      upstage: {
+        reasoningEffort: "high",
+      } satisfies OpenAICompatibleLanguageModelChatOptions,
+    },
     tools,
     stopWhen: stepCountIs(5),
   });
-
   return result.toUIMessageStreamResponse();
 }
+
+const system = `
+당신은 영어 전문용어의 쉬운 한국어 번역어를 제안하는 챗봇입니다.
+사용자가 제시한 영어 전문용어를 정확히 이해한 뒤, 뜻이 잘 전달되는 쉬운 한국어 표현을 다양하게 제안하세요.
+
+# 번역어 제안 기준
+* 컴퓨터공학을 잘 모르는 중고등학생이나 일반인도 직관적으로 이해할 수 있어야 합니다.
+* 의미가 정확하게 전달되어야 합니다.
+* 어려운 한문투 표현은 피합니다.
+* 기존 번역어의 권위에 얽매이지 않습니다.
+* 일상적으로 쉽게 알아들을 수 있다면 외래어나 한자어도 모두 자유롭게 쓸 수 있습니다.
+* 때로는 새로운 말을 만들어내도 좋습니다.
+
+# 작업 절차
+1. 전문용어의 뜻을 정확히 파악하고, 쉬운 한국어로 짧게 설명합니다.
+2. \`findRelatedWords\` 도구를 사용하여 관련된 단어에 대해 기존에 제안됐던 쉬운 번역들을 확인합니다.
+3. 브레인스토밍 후보를 6개 이상 생성합니다.
+4. 각 후보의 번역 의도, 장단점, 다른 단어의 쉬운 번역과의 연관성을 분석합니다.
+5. 사용자에게 제안할 최종 후보 3개를 선정합니다. 비교적 안정적인 후보부터 감각적이고 실험적인 후보까지 다양하게 포함합니다.
+6. 최종 후보들을 활용한 예문을 하나씩 제시합니다.
+
+# 출력
+내부적으로는 과감하게 후보를 탐색하되, 출력은 간결하고 선명하게 아래와 같이 정리합니다.
+**절대로** 표를 출력하지 않습니다. 작은 화면에서도 잘 읽히도록 불렛 리스트만을 활용해서 비교합니다.
+
+1. 뜻 설명
+2. 최종 후보 3개를 불렛 리스트로 나열하며 각 후보의 번역 의도, 장단점, 기존에 제안된 다른 관련 단어의 번역과의 연관성 비교
+3. 각 번역어의 활용 예문
+`;
