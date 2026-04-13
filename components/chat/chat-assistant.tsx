@@ -1,73 +1,92 @@
 "use client";
 
-import { BotIcon, CornerDownLeftIcon, UserIcon, RefreshCcwIcon, SquareIcon } from "lucide-react";
-import { memo, useEffect, useRef, useState } from "react";
-import { DefaultChatTransport } from "ai";
-import { useChat } from "@ai-sdk/react";
+import {
+  BotIcon,
+  CornerDownLeftIcon,
+  UserIcon,
+  RefreshCcwIcon,
+  SquareIcon,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import type { ChatMessage } from "@/app/api/chat/route";
+import { type ChatMessage } from "@/app/api/chat/route";
+import { SearchSkeleton } from "./search-skeleton";
 
 export default function ChatAssistant() {
-  const { messages, sendMessage, regenerate, stop, status } = useChat<ChatMessage>({
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-    }),
-    experimental_throttle: 50,
-  });
+  const { messages, sendMessage, regenerate, stop, status } =
+    useChat<ChatMessage>({
+      transport: new DefaultChatTransport({
+        api: "/api/chat",
+      }),
+      experimental_throttle: 50,
+    });
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const divRef = useRef<HTMLDivElement | null>(null);
   const lastScrollTop = useRef(0);
   const autoScroll = useRef(true);
+
   useEffect(() => {
-    if (autoScroll.current)
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (autoScroll.current) {
+      divRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, status]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const currentInput = input;
     setInput("");
     autoScroll.current = true;
     await sendMessage({
-      parts: [{ type: "text", text: input }],
+      text: currentInput,
     });
     inputRef.current?.focus();
-    autoScroll.current = false;
   };
 
   const handleRetry = async () => {
     autoScroll.current = true;
     await regenerate();
-    autoScroll.current = false;
-  }
+  };
 
   const handleStop = async () => {
     await stop();
     autoScroll.current = false;
-  }
+  };
 
   return (
     <div className="flex h-full max-h-[60vh] flex-col gap-4">
-      <div className="overflow-y-auto pr-2" onScroll={(e) => {
-        if (e.currentTarget.scrollTop < lastScrollTop.current)
-          autoScroll.current = false;
-        lastScrollTop.current = e.currentTarget.scrollTop;
-      }}>
+      <div
+        className="overflow-y-auto pr-2"
+        onScroll={(e) => {
+          if (e.currentTarget.scrollTop < lastScrollTop.current) {
+            autoScroll.current = false;
+          } else if (
+            e.currentTarget.scrollHeight - e.currentTarget.scrollTop ===
+            e.currentTarget.clientHeight
+          ) {
+            autoScroll.current = true;
+          }
+          lastScrollTop.current = e.currentTarget.scrollTop;
+        }}
+      >
         {messages.map((message) => (
-          <div key={message.id} className="flex items-start">
+          <div key={message.id} className="flex mb-4">
             <div className="flex-0">
               {message.role === "user" ? (
-                <UserIcon className="mr-1.5 inline-block size-3.5" />
+                <UserIcon className="mr-2 inline-block size-3.5" />
               ) : (
-                <BotIcon className="mr-1.5 inline-block size-3.5" />
+                <BotIcon className="mr-2 inline-block size-3.5" />
               )}
             </div>
             <div className="prose max-w-none min-w-0 flex-1">
@@ -75,6 +94,20 @@ export default function ChatAssistant() {
                 switch (part.type) {
                   case "text":
                     return <MyMarkdown key={index}>{part.text}</MyMarkdown>;
+                  case "reasoning":
+                    return (
+                      <details
+                        key={index}
+                        className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-gray-500 my-2"
+                      >
+                        <summary className="cursor-pointer font-medium">
+                          생각하는 중...
+                        </summary>
+                        <div className="mt-2 text-sm">
+                          <MyMarkdown>{part.text}</MyMarkdown>
+                        </div>
+                      </details>
+                    );
                   case "tool-checkConsistency":
                     return (
                       <div
@@ -118,7 +151,7 @@ export default function ChatAssistant() {
                     return (
                       <div
                         key={index}
-                        className="mt-2 rounded-md bg-blue-50 p-2 text-sm border border-blue-100"
+                        className="mt-2 rounded-md bg-blue-50 p-3 text-sm border border-blue-100"
                       >
                         {part.state !== "output-available" ? (
                           <div className="flex items-center gap-2 text-blue-600">
@@ -129,7 +162,9 @@ export default function ChatAssistant() {
                           <div className="flex flex-col gap-1">
                             <div className="font-semibold text-blue-700 flex items-center gap-1">
                               <span>✅ 검색 완료:</span>
-                              <span className="text-gray-900">{part.input?.word}</span>
+                              <span className="text-gray-900">
+                                {part.input?.word}
+                              </span>
                             </div>
                             <div className="text-gray-700 leading-relaxed italic">
                               "{part.output?.definition}"
@@ -148,6 +183,70 @@ export default function ChatAssistant() {
                         )}
                       </div>
                     );
+                  case "tool-webSearch":
+                    return (
+                      <div key={index} className="w-full">
+                        {part.state !== "output-available" ? (
+                          <SearchSkeleton query={part.input?.query} />
+                        ) : (
+                          <div className="mt-3 flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm ring-1 ring-gray-900/5">
+                            <div className="flex items-center justify-between border-b border-gray-50 pb-3">
+                              <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                                <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-blue-100 text-[10px] text-blue-700">
+                                  AI
+                                </span>
+                                <span>Agentic Search Results</span>
+                              </div>
+                              <div className="text-[10px] text-gray-400">
+                                Optimized: "{part.output?.optimizedQuery}"
+                              </div>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              {part.output?.results?.map((res: any, i: number) => (
+                                <a
+                                  key={i}
+                                  href={res.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="group flex flex-col gap-2 rounded-xl border border-gray-50 bg-gray-50/30 p-3 transition-all hover:bg-white hover:shadow-md hover:ring-1 hover:ring-blue-100"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-4 w-4 shrink-0 overflow-hidden rounded">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={res.favicon}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                        onError={(e) =>
+                                          (e.currentTarget.style.display = "none")
+                                        }
+                                      />
+                                    </div>
+                                    <div className="truncate text-[10px] text-gray-500 group-hover:text-blue-600">
+                                      {new URL(res.link).hostname}
+                                    </div>
+                                  </div>
+                                  <div className="line-clamp-1 text-xs font-medium text-gray-900 group-hover:text-blue-600">
+                                    {res.title}
+                                  </div>
+                                  <div className="line-clamp-2 text-[10px] leading-relaxed text-gray-600">
+                                    {res.snippet}
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+
+                            {part.output?.results?.length > 0 && (
+                              <div className="flex items-center gap-1.5 border-t border-gray-50 pt-2 text-[10px] text-gray-400">
+                                <div className="size-1 rounded-full bg-green-500" />
+                                <span>Successfully synthesized from multiple sources</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
                   default:
                     return null;
                 }
@@ -155,31 +254,37 @@ export default function ChatAssistant() {
             </div>
           </div>
         ))}
-        <div ref={bottomRef} />
+        <div ref={divRef} />
+        {status === "submitted" && (
+          <div className="text-sm text-gray-500 animate-pulse">
+            챗봇이 답을 하는 중입니다...
+          </div>
+        )}
+        {status === "error" && (
+          <div className="text-sm text-red-500">답변 중 오류가 발생했습니다</div>
+        )}
       </div>
-
       <form className="mt-auto" onSubmit={handleSubmit}>
         <InputGroup>
           <InputGroupInput
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            disabled={status !== "ready"}
             placeholder="메시지를 입력하세요..."
-            ref={inputRef}
           />
-          <InputGroupAddon align="block-end" className="justify-end">
-            {messages.length > 0 ? (
+          <InputGroupAddon align="block-end" className="justify-end bg-white">
+            {messages.length > 0 && (
               <InputGroupButton
                 type="button"
                 disabled={status === "submitted" || status === "streaming"}
                 size="icon-sm"
-                variant="default"
+                variant="ghost"
                 onClick={handleRetry}
               >
                 <RefreshCcwIcon className="size-4" />
               </InputGroupButton>
-            ) : null}
-            {status === "ready" ? (
+            )}
+            {status === "ready" || status === "error" ? (
               <InputGroupButton
                 type="submit"
                 disabled={input.trim() === ""}
@@ -205,20 +310,35 @@ export default function ChatAssistant() {
   );
 }
 
-const plugins = [remarkGfm];
-const components = {
-  table({ children }: { children?: React.ReactNode }) {
-    return (
-      <div className="overflow-x-auto overflow-y-hidden">
-        <table className="min-w-max">{children}</table>
-      </div>
-    );
-  },
-};
-const MyMarkdown = memo(({ children }: { children: string }) => {
+function MyMarkdown({ children }: { children: string }) {
   return (
-    <Markdown remarkPlugins={plugins} components={components}>
+    <Markdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        table({ children }) {
+          return (
+            <div className="overflow-x-auto overflow-y-hidden my-2">
+              <table className="min-w-max border-collapse border border-gray-200">
+                {children}
+              </table>
+            </div>
+          );
+        },
+        th({ children }) {
+          return (
+            <th className="border border-gray-200 bg-gray-50 px-3 py-1 text-left">
+              {children}
+            </th>
+          );
+        },
+        td({ children }) {
+          return (
+            <td className="border border-gray-200 px-3 py-1">{children}</td>
+          );
+        },
+      }}
+    >
       {children}
     </Markdown>
   );
-});
+}
