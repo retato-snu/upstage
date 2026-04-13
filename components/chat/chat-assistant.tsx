@@ -19,6 +19,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { type ChatMessage } from "@/app/api/chat/route";
+import { SearchSkeleton } from "./search-skeleton";
 
 export default function ChatAssistant() {
   const { messages, sendMessage, regenerate, stop, status } =
@@ -168,6 +169,70 @@ export default function ChatAssistant() {
                               >
                                 출처: {new URL(part.output.link).hostname}
                               </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  case "tool-webSearch":
+                    return (
+                      <div key={index} className="w-full">
+                        {part.state !== "output-available" ? (
+                          <SearchSkeleton query={part.input?.query} />
+                        ) : (
+                          <div className="mt-3 flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm ring-1 ring-gray-900/5">
+                            <div className="flex items-center justify-between border-b border-gray-50 pb-3">
+                              <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                                <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-blue-100 text-[10px] text-blue-700">
+                                  AI
+                                </span>
+                                <span>Agentic Search Results</span>
+                              </div>
+                              <div className="text-[10px] text-gray-400">
+                                Optimized: "{part.output?.optimizedQuery}"
+                              </div>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              {part.output?.results?.map((res: any, i: number) => (
+                                <a
+                                  key={i}
+                                  href={res.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="group flex flex-col gap-2 rounded-xl border border-gray-50 bg-gray-50/30 p-3 transition-all hover:bg-white hover:shadow-md hover:ring-1 hover:ring-blue-100"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-4 w-4 shrink-0 overflow-hidden rounded">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={res.favicon}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                        onError={(e) =>
+                                          (e.currentTarget.style.display = "none")
+                                        }
+                                      />
+                                    </div>
+                                    <div className="truncate text-[10px] text-gray-500 group-hover:text-blue-600">
+                                      {new URL(res.link).hostname}
+                                    </div>
+                                  </div>
+                                  <div className="line-clamp-1 text-xs font-medium text-gray-900 group-hover:text-blue-600">
+                                    {res.title}
+                                  </div>
+                                  <div className="line-clamp-2 text-[10px] leading-relaxed text-gray-600">
+                                    {res.snippet}
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+
+                            {part.output?.results?.length > 0 && (
+                              <div className="flex items-center gap-1.5 border-t border-gray-50 pt-2 text-[10px] text-gray-400">
+                                <div className="size-1 rounded-full bg-green-500" />
+                                <span>Successfully synthesized from multiple sources</span>
+                              </div>
                             )}
                           </div>
                         )}

@@ -1,5 +1,6 @@
 import { tool, type ToolSet } from "ai";
 import z from "zod";
+import { generateSearchQuery } from "@/lib/search-utils";
 
 export const tools = {
   lookupDefinition: tool({
@@ -52,6 +53,64 @@ export const tools = {
         return {
           definition: "검색 중 오류가 발생했습니다.",
           link: "",
+        };
+      }
+    },
+  }),
+  webSearch: tool({
+    description: "고급 웹 검색을 통해 전문 용어에 대한 최신 정보와 다양한 출처를 확인합니다.",
+    inputSchema: z.object({
+      query: z.string().describe("검색할 핵심 단어 또는 문장 (사용자의 원래 의도)"),
+    }),
+    execute: async ({ query }) => {
+      const apiKey = process.env.SERPER_API_KEY;
+      if (!apiKey) {
+        throw new Error("SERPER_API_KEY is not set");
+      }
+
+      // 1. SLM을 이용한 쿼리 최적화
+      const optimizedQuery = await generateSearchQuery(query);
+      console.log(`Searching for: "${optimizedQuery}" (Original: "${query}")`);
+
+      try {
+        const response = await fetch("https://google.serper.dev/search", {
+          method: "POST",
+          headers: {
+            "X-API-KEY": apiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            q: optimizedQuery,
+            hl: "ko",
+            gl: "kr",
+            num: 5, // 5개의 결과 요청
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Serper API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // 검색 결과 구조화
+        const results = (data.organic || []).map((item: any) => ({
+          title: item.title,
+          link: item.link,
+          snippet: item.snippet,
+          favicon: `https://www.google.com/s2/favicons?domain=${new URL(item.link).hostname}&sz=128`,
+        }));
+
+        return {
+          optimizedQuery,
+          results,
+        };
+      } catch (error) {
+        console.error("WebSearch tool error:", error);
+        return {
+          optimizedQuery,
+          results: [],
+          error: "검색 중 오류가 발생했습니다.",
         };
       }
     },
