@@ -13,6 +13,7 @@ import { SquarePlus } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Form from "next/form";
 import { useFormStatus } from "react-dom";
+import ChatAssistant from "../chat/chat-assistant";
 import { Textarea } from "@/components/ui/textarea";
 import { getClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,6 @@ import {
   suggestJargon,
   type SuggestJargonState,
 } from "@/app/actions/suggest-jargon";
-import ChatAssistant from "@/components/chat/chat-assistant";
 
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -132,7 +132,7 @@ export default function SuggestJargonDialog() {
           <Form
             ref={formRef}
             action={suggestJargonAction}
-            className="flex flex-col gap-3 border-r pr-4"
+            className="flex flex-col gap-3"
           >
             <div className="flex flex-col gap-1">
               <Label htmlFor="jargon" className="text-sm font-medium">

@@ -1,22 +1,27 @@
 import {
-  convertToModelMessages,
-  InferUITools,
-  stepCountIs,
   streamText,
+  type UIMessage,
+  type InferUITools,
+  convertToModelMessages,
+  stepCountIs,
   UIDataTypes,
-  UIMessage,
 } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
+import {
+  createOpenAICompatible,
+  OpenAICompatibleLanguageModelChatOptions,
+} from "@ai-sdk/openai-compatible";
 import { tools } from "./tools";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 const apiKey = process.env.SOLAR_API_KEY || process.env.SOLAR_LLM_API_KEY || process.env.UPSTAGE_API_KEY;
-const upstage = createOpenAI({
+const upstage = createOpenAICompatible({
+  name: "upstage",
   apiKey,
   baseURL: "https://api.upstage.ai/v1",
 });
+
 const system = `
 당신은 한국정보과학회 쉬운전문용어 제정위원회 소속의 전문가입니다. 전문용어에 대한 쉬운 한국어 번역을 도와주세요.
 
@@ -89,19 +94,23 @@ K-언어권에서 말하고 글 쓸 때 사용한다.
 `.trim();
 
 export type ChatTools = InferUITools<typeof tools>;
-
 export type ChatMessage = UIMessage<never, UIDataTypes, ChatTools>;
 
 export async function POST(req: Request) {
   const { messages }: { messages: ChatMessage[] } = await req.json();
 
   const result = streamText({
-    model: upstage.chat("solar-pro"),
+    model: upstage.chatModel("solar-pro3"),
     system,
     messages: await convertToModelMessages(messages),
+    temperature: 1.1,
+    providerOptions: {
+      upstage: {
+        reasoningEffort: "high",
+      } satisfies OpenAICompatibleLanguageModelChatOptions,
+    },
     tools,
     stopWhen: stepCountIs(5),
   });
-
   return result.toUIMessageStreamResponse();
 }
