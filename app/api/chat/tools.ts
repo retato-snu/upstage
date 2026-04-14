@@ -1,6 +1,6 @@
 import { tool, type ToolSet } from "ai";
 import z from "zod";
-import { generateSearchQuery } from "@/lib/search-utils";
+import { generateSearchQuery, summarizeSearchResults } from "@/lib/search-utils";
 
 export const tools = {
   lookupDefinition: tool({
@@ -34,9 +34,9 @@ export const tools = {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            q: word + " 정의",
-            hl: "ko", // 한국어 검색 결과 우선
-            gl: "kr", // 한국 지역 검색 결과 우선
+            q: word + " definition",
+            hl: "en", // 영어 검색 결과 우선
+            gl: "us", // 미국 지역 검색 결과 우선
           }),
         });
 
@@ -62,19 +62,20 @@ export const tools = {
     },
   }),
   webSearch: tool({
-    description: "고급 웹 검색을 통해 전문 용어에 대한 최신 정보와 다양한 출처를 확인합니다.",
+    description: "고급 웹 검색을 통해 전문 용어에 대한 최신 정보와 다양한 출처를 확인하고 요약합니다.",
     inputSchema: z.object({
       query: z.string().describe("검색할 핵심 단어 또는 문장 (사용자의 원래 의도)"),
     }),
     outputSchema: z.object({
       optimizedQuery: z.string().describe("최적화된 검색 쿼리"),
+      summary: z.string().describe("검색 결과 종합 요약"),
       results: z.array(
         z.object({
           title: z.string().describe("페이지 제목"),
           link: z.string().describe("페이지 링크"),
           snippet: z.string().describe("검색 결과 요약"),
         })
-      ).describe("검색 결과 목록"),
+      ).describe("참고한 검색 결과 목록"),
       error: z.string().optional().describe("에러 메시지 (발생 시)"),
     }),
     execute: async ({ query }) => {
@@ -85,9 +86,9 @@ export const tools = {
 
       // 1. SLM을 이용한 쿼리 최적화
       const optimizedQuery = await generateSearchQuery(query);
-      console.log(`Searching for: "${optimizedQuery}" (Original: "${query}")`);
-
+      
       try {
+        // 2. 검색 실행
         const response = await fetch("https://google.serper.dev/search", {
           method: "POST",
           headers: {
@@ -96,9 +97,8 @@ export const tools = {
           },
           body: JSON.stringify({
             q: optimizedQuery,
-            hl: "ko",
-            gl: "kr",
-            num: 5, // 5개의 결과 요청
+            hl: "en",
+            gl: "us",
           }),
         });
 
@@ -107,16 +107,18 @@ export const tools = {
         }
 
         const data = await response.json();
-        
-        // 검색 결과 구조화
         const results = (data.organic || []).map((item: any) => ({
           title: item.title,
           link: item.link,
           snippet: item.snippet,
         }));
 
+        // 3. SLM을 이용한 결과 요약
+        const summary = await summarizeSearchResults(query, optimizedQuery, results);
+
         return {
           optimizedQuery,
+          summary,
           results,
           error: undefined,
         };
@@ -124,6 +126,7 @@ export const tools = {
         console.error("WebSearch tool error:", error);
         return {
           optimizedQuery: optimizedQuery || query,
+          summary: "검색 결과를 요약하는 도중 오류가 발생했습니다.",
           results: [],
           error: "검색 중 오류가 발생했습니다.",
         };
