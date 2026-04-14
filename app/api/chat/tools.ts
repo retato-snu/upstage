@@ -8,6 +8,10 @@ export const tools = {
     inputSchema: z.object({
       word: z.string().describe("검색할 단어"),
     }),
+    outputSchema: z.object({
+      definition: z.string().describe("단어의 정의"),
+      link: z.string().describe("출처 링크"),
+    }),
     execute: async ({ word }) => {
       // 실제 API 호출을 시뮬레이션하기 위한 지연 시간
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -62,6 +66,17 @@ export const tools = {
     inputSchema: z.object({
       query: z.string().describe("검색할 핵심 단어 또는 문장 (사용자의 원래 의도)"),
     }),
+    outputSchema: z.object({
+      optimizedQuery: z.string().describe("최적화된 검색 쿼리"),
+      results: z.array(
+        z.object({
+          title: z.string().describe("페이지 제목"),
+          link: z.string().describe("페이지 링크"),
+          snippet: z.string().describe("검색 결과 요약"),
+        })
+      ).describe("검색 결과 목록"),
+      error: z.string().optional().describe("에러 메시지 (발생 시)"),
+    }),
     execute: async ({ query }) => {
       const apiKey = process.env.SERPER_API_KEY;
       if (!apiKey) {
@@ -98,17 +113,17 @@ export const tools = {
           title: item.title,
           link: item.link,
           snippet: item.snippet,
-          favicon: `https://www.google.com/s2/favicons?domain=${new URL(item.link).hostname}&sz=128`,
         }));
 
         return {
           optimizedQuery,
           results,
+          error: undefined,
         };
       } catch (error) {
         console.error("WebSearch tool error:", error);
         return {
-          optimizedQuery,
+          optimizedQuery: optimizedQuery || query,
           results: [],
           error: "검색 중 오류가 발생했습니다.",
         };
