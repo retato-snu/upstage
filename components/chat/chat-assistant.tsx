@@ -125,12 +125,11 @@ export default function ChatAssistant() {
                           <MyMarkdown>{part.output.summary}</MyMarkdown>
                         </div>
                       )}
-
                       <div className="mb-2 px-1 text-xs font-semibold text-gray-500">
                         참고 자료
                       </div>
                       <ul className="list-inside list-decimal space-y-1.5 px-1">
-                        {part.output?.results?.map((res: any, i, number) => (
+                        {part.output?.results?.map((res: any, i: number) => (
                           <li key={i} className="text-gray-700">
                             <a
                               href={res.link}
@@ -147,6 +146,14 @@ export default function ChatAssistant() {
                         ))}
                       </ul>
                     </div>
+                  </details>
+                ) : part.type === "tool-checkConsistency" ? (
+                  <details
+                    key={index}
+                    className="rounded-xl border-1 bg-gray-100 p-4 text-gray-500"
+                    open={part.state === "output-available"}
+                  >
+                    <summary></summary>
                   </details>
                 ) : null,
               )}
