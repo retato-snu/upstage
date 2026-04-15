@@ -5,12 +5,9 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { tool, type ToolSet } from "ai";
 import { Database } from "@/lib/supabase/types";
-import z from "zod";
+import { z } from "zod";
 
-const superbase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+
 
 interface MatchTermResult {
   term_id: string;
@@ -26,14 +23,19 @@ export const tools = {
       word: z.string().describe("확인할 단어"),
     }),
     outputSchema: z.object({
-      results: z.string().describe("결과들"),
+      results: z.array(z.object({
+        term: z.string(),
+        translation: z.string(),
+        score: z.number(),
+      })).describe("결과들"),
       message: z.string().describe("상태 메세지"),
     }),
-    excute: async ({ word }) => {
+    execute: async ({ word }) => {
       try {
-        const { data, error } = (await (superbase as any).rpc("match_terms", {
+        const supabase = await createClient();
+        const { data, error } = await (supabase as any).rpc("match_terms", {
           search_query: word,
-        })) as { data: MatchTermResult[] | null; error: any };
+        }) as { data: MatchTermResult[] | null; error: any };
         if (error) {
           console.error("Database RPC error:", error);
           return {
@@ -41,7 +43,7 @@ export const tools = {
             message: "내부 데이터베이스 검색 중 오류가 발생했습니다",
           };
         }
-        if (data || data.length === 0) {
+        if (!data || data.length === 0) {
           return {
             results: [],
             message: "내부 데이터 베이스에 매칭되는 용어가 없습니다",
@@ -49,7 +51,7 @@ export const tools = {
         }
         return {
           results: data.map((item) => ({
-            term: item.jargon_term.
+            term: item.jargon_term,
             translation: item.suggested_translation,
             score: item.similarity_score,
           })),

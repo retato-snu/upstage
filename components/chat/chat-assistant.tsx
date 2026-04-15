@@ -150,10 +150,60 @@ export default function ChatAssistant() {
                 ) : part.type === "tool-checkConsistency" ? (
                   <details
                     key={index}
-                    className="rounded-xl border-1 bg-gray-100 p-4 text-gray-500"
+                    className="my-2 rounded-xl border-1 bg-gray-100 p-4 text-gray-500"
                     open={part.state === "output-available"}
                   >
-                    <summary></summary>
+                    <summary className="cursor-pointer font-medium hover:text-gray-700 transition-colors">
+                      {part.state !== "output-available" ? (
+                        <span className="flex items-center gap-2">
+                          <RefreshCwIcon className="size-3 animate-spin" />
+                          내부 데이터베이스 확인 중...
+                        </span>
+                      ) : (
+                        "내부 데이터베이스 확인 완료"
+                      )}
+                    </summary>
+                    <div className="mt-4 flex flex-col gap-3 text-sm">
+                      <div className="flex items-center gap-2 font-semibold text-orange-700">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-orange-100 text-[10px] text-orange-700">
+                          DB
+                        </span>
+                        <span>내부 검색 결과: {part.input?.word}</span>
+                      </div>
+                      
+                      <div className="text-xs text-gray-500 italic">
+                        {part.output?.message}
+                      </div>
+
+                      {part.output?.results && Array.isArray(part.output.results) && part.output.results.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {part.output.results.map((res: any, i: number) => (
+                            <div
+                              key={i}
+                              className="group relative flex flex-col rounded-lg border border-orange-100 bg-white p-2 shadow-sm transition-all hover:border-orange-200 hover:shadow-md"
+                            >
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-xs font-bold text-gray-900">
+                                  {res.term}
+                                </span>
+                                <span className="text-[10px] font-medium text-orange-500">
+                                  {Math.round(res.score * 100)}% Match
+                                </span>
+                              </div>
+                              <div className="mt-1 text-xs text-orange-600 font-semibold">
+                                {res.translation}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        part.state === "output-available" && (
+                          <div className="rounded-lg border border-dashed border-gray-200 p-3 text-center text-xs italic text-gray-400">
+                            매칭되는 내부 데이터가 없습니다.
+                          </div>
+                        )
+                      )}
+                    </div>
                   </details>
                 ) : null,
               )}
