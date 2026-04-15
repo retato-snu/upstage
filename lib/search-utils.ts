@@ -11,7 +11,7 @@ const upstage = createOpenAICompatible({
 export async function generateSearchQuery(intent: string): Promise<string> {
   try {
     const { text } = await generateText({
-      model: upstage.chatModel("solar-1-mini-chat"),
+      model: upstage.chatModel("solar-mini"),
       system: `당신은 검색어 최적화 전문가입니다.
 사용자의 질문이나 단어를 Google 검색에 가장 적합한 쿼리로 변환하세요.
 단순히 던어를 나열하기보다는 정의, 기술 스택, 최신 동향 등을 포함하는 구체적인 쿼리를 생성하세요.
@@ -38,7 +38,7 @@ export async function summarizeSearchResults(
 
   try {
     const { text } = await generateText({
-      model: upstage.chatModel("solar-1-mini-chat"),
+      model: upstage.chatModel("solar-mini"),
       system: `당신은 웹 검색 결과를 종합하여 다른 LLM에게 판단 근거로 사용할 수 있게 정확하고 간결한 정보를 제공하는 AI 어시스턴트입니다.
             제공된 '검색 결과'을 바탕으로 사용자의 '원래 질문'에 대해 한국어로 요약해 설명하세요.
 - 사실에 기반하여 답하고, 정보가 부족하다면 아는 선에서만 답변하세요.
