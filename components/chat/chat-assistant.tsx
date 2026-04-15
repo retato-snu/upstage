@@ -130,7 +130,7 @@ export default function ChatAssistant() {
                         참고 자료
                       </div>
                       <ul className="list-inside list-decimal space-y-1.5 px-1">
-                        {part.output?.results?.map((res: any, i, number) => (
+                        {part.output?.results?.map((res: any, i: number) => (
                           <li key={i} className="text-gray-700">
                             <a
                               href={res.link}
