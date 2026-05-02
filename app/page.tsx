@@ -46,35 +46,25 @@ export default async function Home({
   const categories = categoriesParam?.split(",") ?? null;
 
   const supabase = await createClient();
-  let countResult: any = { data: 0 };
-  let jargonResults: any = { data: [] };
-  let featuredResults: any = { data: [] };
 
-  try {
-    const results = await Promise.all([
-      QUERIES.countJargons(supabase, searchQuery),
-      QUERIES.searchJargons(
-        supabase,
-        searchQuery,
-        INITIAL_LOAD_SIZE,
-        0,
-        sort,
-        categories,
-      ),
-      QUERIES.listFeaturedJargons(supabase, FEATURED_LOAD_SIZE),
-    ]);
-    countResult = results[0];
-    jargonResults = results[1];
-    featuredResults = results[2];
+  const [countResult, jargonResults, featuredResults] = await Promise.all([
+    QUERIES.countJargons(supabase, searchQuery),
+    QUERIES.searchJargons(
+      supabase,
+      searchQuery,
+      INITIAL_LOAD_SIZE,
+      0,
+      sort,
+      categories,
+    ),
+    QUERIES.listFeaturedJargons(supabase, FEATURED_LOAD_SIZE),
+  ]);
 
-    if (jargonResults.error) throw jargonResults.error;
-    if (countResult.error) throw countResult.error;
-    if (featuredResults.error) throw featuredResults.error;
-  } catch (error) {
-    console.error("Supabase connection error:", error);
-  }
+  if (jargonResults.error) throw jargonResults.error;
+  if (countResult.error) throw countResult.error;
+  if (featuredResults.error) throw featuredResults.error;
 
-  const initialData = (jargonResults.data ?? []).map((item: any) => ({
+  const initialData = jargonResults.data.map((item) => ({
     id: item.id,
     name: item.name,
     slug: item.slug,
@@ -85,7 +75,7 @@ export default async function Home({
   }));
   const initialTotalCount = countResult.data;
 
-  const featuredJargons = (featuredResults.data ?? []).map((item: any) => ({
+  const featuredJargons = (featuredResults.data ?? []).map((item) => ({
     id: item.id,
     name: item.name,
     slug: item.slug,

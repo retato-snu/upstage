@@ -1,7 +1,5 @@
--- 1. pg_trgm 익스텐션 활성화 (Fuzzy 검색용)
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
--- 2. AI의 checkConsistency 도구를 위한 전용 검색 함수 생성
 CREATE OR REPLACE FUNCTION match_terms(search_query text)
 RETURNS TABLE (
   term_id uuid,
@@ -21,9 +19,9 @@ BEGIN
   LEFT JOIN 
     translation t ON j.id = t.jargon_id
   WHERE 
-    j.name % search_query OR t.name % search_query -- pg_trgm 퍼지 검색
+    j.name % search_query OR t.name % search_query 
   ORDER BY 
     similarity_score DESC
-  LIMIT 5; -- AI 컨텍스트 용량 조절
+  LIMIT 5; 
 END;
 $$ LANGUAGE plpgsql;
